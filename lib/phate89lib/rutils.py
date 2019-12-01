@@ -8,7 +8,7 @@ import os
 from . import staticutils
 from bs4 import BeautifulSoup
 
-class RUtils:
+class RUtils(object):
     SESSION = requests.Session()
     USERAGENT = 'phate89 utility module'
     DEFPARAMS={}
@@ -27,15 +27,15 @@ class RUtils:
         if level<=self.LOGLEVEL:
             print (u"#### {name}: {text} ####".format(name=os.path.basename(__file__),text=msg))
 
-    def createRequest(self,url,params={},post={},stream=False,addDefault=True):
+    def createRequest(self,url,params={},post={},stream=False,addDefault=True, **kwargs):
         if addDefault:
             params.update(self.DEFPARAMS)
         if post:
-            r = self.SESSION.post(url,params=params,data=post,stream=stream)
+            r = self.SESSION.post(url,params=params,data=post,stream=stream,verify=False, **kwargs)
         else:
-            r = self.SESSION.get(url,params=params,stream=stream)
+            r = self.SESSION.get(url,params=params,stream=stream,verify=False, **kwargs)
         self.log("Opening url %s" % r.url,2)
-        if r.status_code == requests.codes.ok:
+        if r.status_code == requests.codes.ok or r.status_code == 302:
             return r
         elif r.status_code < 500:
             self.log("Error opening url. Client error")
@@ -47,8 +47,8 @@ class RUtils:
         self.SESSION = requests.Session()
         self.setUserAgent(self.USERAGENT)
 
-    def getJson(self,url,params={},post={}):
-        r = self.createRequest(url, params, post)
+    def getJson(self,url,params={},post={}, **kwargs):
+        r = self.createRequest(url, params, post, **kwargs)
         if r:
             try:
                 return r.json()
@@ -56,18 +56,18 @@ class RUtils:
                 self.log("Error serializing json")
                 return False
 
-    def getSoup(self,url,params={},post={},parser="html.parser"):
+    def getSoup(self,url,params={},post={},parser="html.parser", **kwargs):
         r = self.createRequest(url, params, post)
         if r:
-            return BeautifulSoup(r.text, parser)
+            return BeautifulSoup(r.text, parser, **kwargs)
         return False
 
-    def getSoupFromRes(self,res,parser="html.parser"):
+    def getSoupFromRes(self,res,parser="html.parser", **kwargs):
         if res:
-            return BeautifulSoup(res.text, parser)
+            return BeautifulSoup(res.text, parser, **kwargs)
         return False
 
-    def getText(self,url,params={},post={}):
+    def getText(self,url,params={},post={}, **kwargs):
         r = self.createRequest(url, params, post)
         if r:
             return r.text

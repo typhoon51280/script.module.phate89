@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import urllib
-from six.moves.urllib.parse import urlparse, urlencode, parse_qsl
+try:
+    from urllib.parse import urlparse, urlencode, parse_qsl
+except ImportError:
+    from urlparse import parse_qsl, urlparse
+    from urllib import urlencode
 import sys
 import re
 import unicodedata

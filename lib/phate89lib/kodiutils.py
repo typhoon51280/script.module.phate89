@@ -4,6 +4,10 @@ from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui
 import os
 import sys
 import re
+try:
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
 from . import staticutils
 if sys.version_info < (2, 7):
     import simplejson as json
@@ -60,10 +64,13 @@ def setSetting(setting,value):
 def getKeyboard():
     return xbmc.Keyboard()
 
-def addListItem(label="", params={}, label2=None, thumb=None, fanart=None, poster=None,
+def addListItem(label="", params={}, label2=None, thumb=None, fanart=None, poster=None, arts={},
                 videoInfo={}, properties={}, isFolder=True):
     item=xbmcgui.ListItem(label,label2)
-    item.setArt({'thumb': thumb, 'fanart': fanart, 'poster': poster})
+    if thumb: arts['thumb'] = thumb
+    if fanart: arts['fanart'] = fanart
+    if poster: arts['poster'] = poster
+    item.setArt(arts)
     item.setInfo( 'video', videoInfo)
     if not isFolder: properties['IsPlayable']='true'
     if isinstance(params,dict):
@@ -74,9 +81,17 @@ def addListItem(label="", params={}, label2=None, thumb=None, fanart=None, poste
         item.setProperty(key, value)
     return xbmcplugin.addDirectoryItem(handle=HANDLE, url=url, listitem=item, isFolder=isFolder)
 
-def setResolvedUrl(url="", solved=True, subs=[]):
-    item = xbmcgui.ListItem(path = url)
+def setResolvedUrl(url="", solved=True, subs=[], headers=None, ins=None, insdata=None):
+    headerUrl=""
+    if headers:
+            headerUrl = urlencode(headers)
+    item = xbmcgui.ListItem(path = url + "|" + headerUrl)
     item.setSubtitles(subs)
+    if ins:
+        item.setProperty('inputstreamaddon', ins)
+        if insdata:
+            for key, value in insdata.items():
+                item.setProperty(ins + '.' + key, value)
     xbmcplugin.setResolvedUrl(HANDLE, solved, item)
     sys.exit()
 
