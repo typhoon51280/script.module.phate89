@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import xbmcaddon
-import xbmc
-import xbmcplugin
-import xbmcgui
+from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui
 import os
 import sys
 import re
-import staticutils
+from . import staticutils
 if sys.version_info < (2, 7):
     import simplejson as json
 else:
@@ -19,17 +16,15 @@ NAME = ADDON.getAddonInfo('name')
 VERSION = ADDON.getAddonInfo('version')
 PATH = ADDON.getAddonInfo('path')
 DATA_PATH = ADDON.getAddonInfo('profile')
-PATH_T = xbmc.translatePath(PATH).decode('utf-8')
-DATA_PATH_T = xbmc.translatePath(DATA_PATH).decode('utf-8')
+PATH_T = xbmc.translatePath(PATH)
+DATA_PATH_T = xbmc.translatePath(DATA_PATH)
 IMAGE_PATH_T = os.path.join(PATH_T, 'resources', 'media', "")
 LANGUAGE = ADDON.getLocalizedString
 
 HANDLE=int(sys.argv[1])
 
 def executebuiltin(func,block=False):
-    if isinstance (func,str):
-        func = func.decode("utf-8", 'ignore')
-    xbmc.executebuiltin(func.encode('utf-8'),block)
+    xbmc.executebuiltin(func,block)
 
 
 def notify(msg):
@@ -37,13 +32,11 @@ def notify(msg):
     xbmc.executebuiltin(message)
 
 def log(msg, level=2):
-    if isinstance(msg, str):
-        msg = msg.decode("utf-8", 'ignore')
     message = u'%s: %s' % (ID, msg)
     if level > 1:
-        xbmc.log(msg=message.encode("utf-8", 'ignore'), level=xbmc.LOGDEBUG)
+        xbmc.log(msg=message, level=xbmc.LOGDEBUG)
     else:
-        xbmc.log(msg=message.encode("utf-8", 'ignore'), level=xbmc.LOGNOTICE)
+        xbmc.log(msg=message, level=xbmc.LOGNOTICE)
         if level == 0:
             notify(msg)
 
@@ -67,17 +60,17 @@ def setSetting(setting,value):
 def getKeyboard():
     return xbmc.Keyboard()
 
-def addListItem(label="", params={}, label2=None, thumb=None, fanart=None, 
+def addListItem(label="", params={}, label2=None, thumb=None, fanart=None, poster=None,
                 videoInfo={}, properties={}, isFolder=True):
     item=xbmcgui.ListItem(label,label2)
-    item.setArt({'thumb': thumb, 'fanart': fanart})
+    item.setArt({'thumb': thumb, 'fanart': fanart, 'poster': poster})
     item.setInfo( 'video', videoInfo)
     if not isFolder: properties['IsPlayable']='true'
     if isinstance(params,dict):
         url=staticutils.parameters(params)
     else:
         url = params
-    for key, value in properties.iteritems():
+    for key, value in properties.items():
         item.setProperty(key, value)
     return xbmcplugin.addDirectoryItem(handle=HANDLE, url=url, listitem=item, isFolder=isFolder)
 
@@ -128,7 +121,7 @@ def getShowID():
     return False
 
 def containsLanguage(strlang,langs):
-    for lang in strlang.decode('utf-8').split(','):
+    for lang in strlang.split(','):
         if xbmc.convertLanguage(lang, xbmc.ISO_639_2) in langs:
             return True
     return False
@@ -144,7 +137,7 @@ def getEpisodeInfo():
     episode['tvshow'] = staticutils.normalizeString(xbmc.getInfoLabel('VideoPlayer.TVshowtitle'))    # Show
     episode['season'] = xbmc.getInfoLabel('VideoPlayer.Season')                                    # Season
     episode['episode'] = xbmc.getInfoLabel('VideoPlayer.Episode')                                  # Episode
-    file_original_path = xbmc.Player().getPlayingFile().decode('utf-8')                 # Full path
+    file_original_path = xbmc.Player().getPlayingFile()                                            # Full path
     
     if str(episode['episode']).lower().find('s') > -1:                                             # Check if season is "Special"
         episode['season'] = 0

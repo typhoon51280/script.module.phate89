@@ -5,7 +5,7 @@ import requests
 import re
 import shutil
 import os
-import staticutils
+from . import staticutils
 from bs4 import BeautifulSoup
 
 class RUtils:
@@ -25,9 +25,7 @@ class RUtils:
 
     def log(self,msg, level=2):
         if level<=self.LOGLEVEL:
-            if isinstance(msg, str):
-                msg = msg.decode("utf-8", 'ignore')
-            print u"#### {name}: {text} ####".format(name=os.path.basename(__file__),text=msg)
+            print (u"#### {name}: {text} ####".format(name=os.path.basename(__file__),text=msg))
 
     def createRequest(self,url,params={},post={},stream=False,addDefault=True):
         if addDefault:
@@ -58,15 +56,15 @@ class RUtils:
                 self.log("Error serializing json")
                 return False
 
-    def getSoup(self,url,params={},post={}):
+    def getSoup(self,url,params={},post={},parser="html.parser"):
         r = self.createRequest(url, params, post)
         if r:
-            return BeautifulSoup(r.text, "html.parser")
+            return BeautifulSoup(r.text, parser)
         return False
 
-    def getSoupFromRes(self,res):
+    def getSoupFromRes(self,res,parser="html.parser"):
         if res:
-            return BeautifulSoup(res.text, "html.parser")
+            return BeautifulSoup(res.text, parser)
         return False
 
     def getText(self,url,params={},post={}):

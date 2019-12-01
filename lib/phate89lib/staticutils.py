@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import urllib
-import urlparse
+from six.moves.urllib.parse import urlparse, urlencode, parse_qsl
 import sys
 import re
 import unicodedata
@@ -9,10 +9,10 @@ import unicodedata
 def getParams():
     if not sys.argv[2]:
         return {}
-    return dict(urlparse.parse_qsl(sys.argv[2][1:]))
+    return dict(parse_qsl(sys.argv[2][1:]))
  
 def parameters (p):
-    return sys.argv[0] + '?' + urllib.urlencode(p)
+    return sys.argv[0] + '?' + urlencode(p)
 
 def normalizeString(str):
     return unicodedata.normalize(
