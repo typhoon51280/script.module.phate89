@@ -7,6 +7,7 @@ import shutil
 import os
 from . import staticutils
 from bs4 import BeautifulSoup
+from kodi_six.utils import py2_encode
 
 class RUtils(object):
     SESSION = requests.Session()
@@ -70,7 +71,7 @@ class RUtils(object):
     def getText(self,url,params={},post={}, **kwargs):
         r = self.createRequest(url, params, post)
         if r:
-            return r.text
+            return py2_encode(r.text)
         return False
 
     def getFileExtracted(self,url,params={},post={},dataPath='',index=0):

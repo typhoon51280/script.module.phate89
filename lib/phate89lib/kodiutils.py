@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui
+from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, utils
 import os
 import sys
 import re
@@ -24,12 +24,12 @@ PATH_T = xbmc.translatePath(PATH)
 DATA_PATH_T = xbmc.translatePath(DATA_PATH)
 IMAGE_PATH_T = os.path.join(PATH_T, 'resources', 'media', "")
 LANGUAGE = ADDON.getLocalizedString
+KODILANGUAGE = xbmc.getLocalizedString
 
 HANDLE=int(sys.argv[1])
 
 def executebuiltin(func,block=False):
     xbmc.executebuiltin(func,block)
-
 
 def notify(msg):
     message = 'Notification(%s,%s)' % (ID, msg)
@@ -43,6 +43,12 @@ def log(msg, level=2):
         xbmc.log(msg=message, level=xbmc.LOGNOTICE)
         if level == 0:
             notify(msg)
+
+def py2_decode(s):
+    return utils.py2_decode(s)
+
+def py2_encode(s):
+    return utils.py2_encode(s)
 
 def getSetting(setting):
     return ADDON.getSetting(setting).strip()
@@ -63,6 +69,18 @@ def setSetting(setting,value):
 
 def getKeyboard():
     return xbmc.Keyboard()
+
+def getKeyboardText(heading, default='', hidden=False):
+    kb = xbmc.Keyboard(default, heading)
+    kb.setHiddenInput(hidden)
+    kb.doModal()
+    if (kb.isConfirmed()):
+        return kb.getText()
+    else:
+        False
+
+def showOkDialog(heading, line):
+    xbmcgui.Dialog().ok(heading, line)
 
 def addListItem(label="", params={}, label2=None, thumb=None, fanart=None, poster=None, arts={},
                 videoInfo={}, properties={}, isFolder=True):
@@ -146,6 +164,9 @@ def isPlayingVideo():
 
 def getInfoLabel(lbl):
     return xbmc.getInfoLabel(lbl)
+
+def getRegion(id):
+    return xbmc.getRegion(id)
 
 def getEpisodeInfo():
     episode = {}
