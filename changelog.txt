@@ -1,6 +1,7 @@
 1.2.0
 - Support for passing inputstream
 - More Python 3.x functions and fixes
+- Datetime utils
 
 1.1.0
 - Added optional choice of BS parser (added html5lib dependency)

@@ -95,7 +95,7 @@ def addListItem(label="", params={}, label2=None, thumb=None, fanart=None, poste
         url=staticutils.parameters(params)
     else:
         url = params
-    for key, value in properties.items():
+    for key, value in list(properties.items()):
         item.setProperty(key, value)
     return xbmcplugin.addDirectoryItem(handle=HANDLE, url=url, listitem=item, isFolder=isFolder)
 
@@ -108,7 +108,7 @@ def setResolvedUrl(url="", solved=True, subs=[], headers=None, ins=None, insdata
     if ins:
         item.setProperty('inputstreamaddon', ins)
         if insdata:
-            for key, value in insdata.items():
+            for key, value in list(insdata.items()):
                 item.setProperty(ins + '.' + key, value)
     xbmcplugin.setResolvedUrl(HANDLE, solved, item)
     sys.exit()
@@ -145,11 +145,11 @@ def createAddonFolder():
 
 def getShowID():
     json_query = xbmc.executeJSONRPC('{"jsonrpc":"2.0","method":"Player.GetItem","params":{"playerid":1,"properties":["tvshowid"]},"id":1}' )
-    json_player_getitem = json.loads(unicode(json_query, 'utf-8', errors='ignore'))
-    if json_player_getitem.has_key('result') and json_player_getitem['result']['item']['type'] == 'episode':
+    json_player_getitem = json.loads(utils.py2_decode(json_query, 'utf-8', errors='ignore'))
+    if 'result' in json_player_getitem and json_player_getitem['result']['item']['type'] == 'episode':
         json_query = xbmc.executeJSONRPC('{"jsonrpc":"2.0","id":1,"method":"VideoLibrary.GetTVShowDetails","params":{"tvshowid":%s, "properties": ["imdbnumber"]}}' % (json_player_getitem['result']['item']['tvshowid']) )
-        json_getepisodedetails = json.loads(unicode(json_query, 'utf-8', errors='ignore'))
-        if json_getepisodedetails.has_key('result') and json_getepisodedetails['result']['tvshowdetails']['imdbnumber']!='':
+        json_getepisodedetails = json.loads(utils.py2_decode(json_query, 'utf-8', errors='ignore'))
+        if 'result' in json_getepisodedetails and json_getepisodedetails['result']['tvshowdetails']['imdbnumber']!='':
             return str(json_getepisodedetails['result']['tvshowdetails']['imdbnumber'])
     return False
 

@@ -32,9 +32,9 @@ class RUtils(object):
         if addDefault:
             params.update(self.DEFPARAMS)
         if post:
-            r = self.SESSION.post(url,params=params,data=post,stream=stream,verify=False, **kwargs)
+            r = self.SESSION.post(url,params=params,data=post,stream=stream, **kwargs)
         else:
-            r = self.SESSION.get(url,params=params,stream=stream,verify=False, **kwargs)
+            r = self.SESSION.get(url,params=params,stream=stream, **kwargs)
         self.log("Opening url %s" % r.url,2)
         if r.status_code == requests.codes.ok or r.status_code == 302:
             return r

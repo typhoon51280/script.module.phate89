@@ -9,6 +9,8 @@ except ImportError:
 import sys
 import re
 import unicodedata
+from datetime import datetime
+import time
 
 def getParams():
     if not sys.argv[2]:
@@ -71,3 +73,16 @@ def parseFileName(filename):
         else:
             season=1
     return tvshow,season,episode
+
+def get_timestamp(dt = None):
+    if dt == None:
+        dt = datetime.now()
+    return int(time.mktime(dt.timetuple())) * 1000
+
+def get_timestamp_midnight(dt = None):
+    if dt == None:
+        dt = datetime.now()
+    return get_timestamp(dt.replace(hour=0, minute=0, second=0, microsecond=0))
+
+def get_date_from_timestamp(dt):
+    return datetime.fromtimestamp(dt / 1e3)
