@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
+import shutil
 import zipfile
 import requests
-import re
-import shutil
-import os
-from . import staticutils
 from bs4 import BeautifulSoup
 from kodi_six.utils import py2_encode
+try:
+    from json.decoder import JSONDecodeError
+except ImportError:
+    JSONDecodeError = ValueError
 
 class RUtils(object):
     SESSION = requests.Session()
@@ -28,17 +30,19 @@ class RUtils(object):
         if level<=self.LOGLEVEL:
             print (u"#### {name}: {text} ####".format(name=os.path.basename(__file__),text=msg))
 
-    def createRequest(self,url,params={},post={},stream=False,addDefault=True, **kwargs):
+    def createRequest(self,url,params=None,post=None,stream=False,addDefault=True, **kwargs):
+        if params is None:
+            params = {}
         if addDefault:
             params.update(self.DEFPARAMS)
-        if post:
+        if post is not None:
             r = self.SESSION.post(url,params=params,data=post,stream=stream, **kwargs)
         else:
             r = self.SESSION.get(url,params=params,stream=stream, **kwargs)
         self.log("Opening url %s" % r.url,2)
-        if r.status_code == requests.codes.ok or r.status_code == 302:
+        if r.ok():
             return r
-        elif r.status_code < 500:
+        if r.status_code < 500:
             self.log("Error opening url. Client error")
         else:
             self.log("Error opening url. Server error")
@@ -48,16 +52,16 @@ class RUtils(object):
         self.SESSION = requests.Session()
         self.setUserAgent(self.USERAGENT)
 
-    def getJson(self,url,params={},post={}, **kwargs):
+    def getJson(self,url,params=None,post=None, **kwargs):
         r = self.createRequest(url, params, post, **kwargs)
         if r:
             try:
                 return r.json()
-            except:
+            except (requests.HTTPError, JSONDecodeError):
                 self.log("Error serializing json")
-                return False
+        return None
 
-    def getSoup(self,url,params={},post={},parser="html.parser", **kwargs):
+    def getSoup(self,url,params=None,post=None,parser="html.parser", **kwargs):
         r = self.createRequest(url, params, post)
         if r:
             return BeautifulSoup(r.text, parser, **kwargs)
@@ -68,23 +72,24 @@ class RUtils(object):
             return BeautifulSoup(res.text, parser, **kwargs)
         return False
 
-    def getText(self,url,params={},post={}, **kwargs):
-        r = self.createRequest(url, params, post)
+    def getText(self,url,params=None,post=None, **kwargs):
+        r = self.createRequest(url, params, post, **kwargs)
         if r:
             return py2_encode(r.text)
         return False
 
-    def getFileExtracted(self,url,params={},post={},dataPath='',index=0):
+    def getFileExtracted(self,url,params=None,post=None,dataPath='',index=0):
         if not dataPath:
             return False
         data=self.createRequest(url,params,post,stream=True)
         if not data:
-            self.log(sUrl + " file read failed",4)
+            self.log(url + " file read failed",4)
             return False
 
         if os.path.isdir(dataPath):
             shutil.rmtree(dataPath)
         os.makedirs(dataPath)
+        chunk=''
         for chunk in data.iter_content(1):
             ext='srt'
             if chunk=='P':
@@ -101,7 +106,7 @@ class RUtils(object):
                 fd.write(chunk)
                 for chunk in data.iter_content(chunk_size=1024):
                     fd.write(chunk)
-        except:
+        except EnvironmentError:
             self.log("Error writing file")
             return False
         
@@ -123,7 +128,7 @@ class RUtils(object):
                     fp=open(outName,'wb')                 
                     fp.write(binData)
                     fp.close()
-                except:
+                except EnvironmentError:
                     self.log("Error writing text subtitle file")
                     return False
             else:
@@ -132,7 +137,7 @@ class RUtils(object):
                 return False
         elif ext=='rar':
             try:
-                __import__(xbmc)
+                from kodi_six import xbmc
             except ImportError:
                 self.log('rar extraction not supported',1)
                 return False
@@ -143,10 +148,10 @@ class RUtils(object):
             xbmc.executebuiltin('XBMC.Extract(%s,%s)' % (TEMPFILE, TEMPFOLDER), True)
             exts = ['.srt', '.sub', '.txt', '.smi', '.ssa', '.ass']
             subs = [os.path.join(root, name)
-                 for root, dirs, files in os.walk(TEMPFOLDER)
-                 for name in files
-                 if os.path.splitext(name)[1] in exts]
-            if len(subs)<=0:
+                    for root, dirs, files in os.walk(TEMPFOLDER)
+                    for name in files
+                    if os.path.splitext(name)[1] in exts]
+            if not subs:
                 return False
             if index>=len(subs):
                 index = 0

@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import urllib
 try:
-    from urllib.parse import urlparse, urlencode, parse_qsl
+    from urllib.parse import urlencode, parse_qsl
 except ImportError:
-    from urlparse import parse_qsl, urlparse
     from urllib import urlencode
+    from urlparse import parse_qsl
 import sys
 import re
 import unicodedata
@@ -20,32 +19,33 @@ def getParams():
 def parameters (p):
     return sys.argv[0] + '?' + urlencode(p)
 
-def normalizeString(str):
+def normalizeString(s):
     return unicodedata.normalize(
-        'NFKD', unicode(unicode(str, 'utf-8'))
+        'NFKD', unicode(unicode(s, 'utf-8'))
     ).encode('ascii', 'ignore')
 
 def guessQuality(sFileName):
     fl=sFileName.lower()
+    res = ""
     if ('web-dl' in fl) or ('web.dl' in fl) or ('webdl' in fl) or ('web dl' in fl):
-        return "web-dl"
-    elif ('720p' in fl) and ('hdtv' in fl):
-        return "720p"
-    elif ('bdrip' in fl):
-        return "bdrip"
-    elif ('bdrip' in fl):
-        return "bdrip"
-    elif ('bluray' in fl):
-        return "bluray"
-    elif ('1080i' in fl):
-        return "1080i"
-    elif ('1080p' in fl):
-        return "1080p"
-    elif ('hdtv' in fl):
-        return "normale"
-    elif ('hr' in fl):
-        return "hr"
-    return ""
+        res = "web-dl"
+    if ('720p' in fl) and ('hdtv' in fl):
+        res = "720p"
+    if ('bdrip' in fl):
+        res = "bdrip"
+    if ('bdrip' in fl):
+        res = "bdrip"
+    if ('bluray' in fl):
+        res = "bluray"
+    if ('1080i' in fl):
+        res = "1080i"
+    if ('1080p' in fl):
+        res = "1080p"
+    if ('hdtv' in fl):
+        res = "normale"
+    if ('hr' in fl):
+        res = "hr"
+    return res
 
 def createMenu(items, dflt):
     params = getParams()
@@ -57,9 +57,9 @@ def createMenu(items, dflt):
 def parseFileName(filename):
     tvshow=episode=season=''
     reStrings=[
-    '(?P<NOME>.*[^ _.-])[ _.-]+s(?P<STAGIONE>[0-9]+)[ ._-]*e(?P<EPISODIO>[0-9]+(?:(?:[a-i]|\.[1-9])(?![0-9]))?)',
-    '(?P<NOME>.*[^ _.-])[ _.-]+(?P<STAGIONE>[0-9]+)x(?P<EPISODIO>[0-9]+(?:(?:[a-i]|\.[1-9])(?![0-9]))?)',
-    '(?P<NOME>.*[^ _.-])[ _.-]+e(?:p[ ._-]?)?(?P<EPISODIO>[0-9]+(?:(?:[a-i]|\.[1-9])(?![0-9]))?)'
+        r'(?P<NOME>.*[^ _.-])[ _.-]+s(?P<STAGIONE>[0-9]+)[ ._-]*e(?P<EPISODIO>[0-9]+(?:(?:[a-i]|\.[1-9])(?![0-9]))?)',
+        r'(?P<NOME>.*[^ _.-])[ _.-]+(?P<STAGIONE>[0-9]+)x(?P<EPISODIO>[0-9]+(?:(?:[a-i]|\.[1-9])(?![0-9]))?)',
+        r'(?P<NOME>.*[^ _.-])[ _.-]+e(?:p[ ._-]?)?(?P<EPISODIO>[0-9]+(?:(?:[a-i]|\.[1-9])(?![0-9]))?)'
     ]
     for rg in reStrings:
         p=re.search(rg,filename,re.IGNORECASE)
@@ -75,12 +75,12 @@ def parseFileName(filename):
     return tvshow,season,episode
 
 def get_timestamp(dt = None):
-    if dt == None:
+    if dt is None:
         dt = datetime.now()
     return int(time.mktime(dt.timetuple())) * 1000
 
 def get_timestamp_midnight(dt = None):
-    if dt == None:
+    if dt is None:
         dt = datetime.now()
     return get_timestamp(dt.replace(hour=0, minute=0, second=0, microsecond=0))
 

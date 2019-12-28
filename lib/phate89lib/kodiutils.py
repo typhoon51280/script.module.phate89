@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, utils
 import os
-import sys
 import re
+import sys
+from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, utils
 try:
     from urllib.parse import urlencode
 except ImportError:
@@ -60,7 +60,7 @@ def getSettingAsNum(setting):
     num=0
     try:
         num=float(getSetting(setting))
-    except:
+    except ValueError:
         pass
     return num
 
@@ -76,14 +76,17 @@ def getKeyboardText(heading, default='', hidden=False):
     kb.doModal()
     if (kb.isConfirmed()):
         return kb.getText()
-    else:
-        False
+    return False
 
 def showOkDialog(heading, line):
     xbmcgui.Dialog().ok(heading, line)
 
-def addListItem(label="", params={}, label2=None, thumb=None, fanart=None, poster=None, arts={},
-                videoInfo={}, properties={}, isFolder=True):
+def addListItem(label="", params=None, label2=None, thumb=None, fanart=None, poster=None, arts=None,
+                videoInfo=None, properties=None, isFolder=True):
+    if arts is None:
+        arts = {}
+    if properties is None:
+        properties = {}
     item=xbmcgui.ListItem(label,label2)
     if thumb: arts['thumb'] = thumb
     if fanart: arts['fanart'] = fanart
@@ -99,12 +102,13 @@ def addListItem(label="", params={}, label2=None, thumb=None, fanart=None, poste
         item.setProperty(key, value)
     return xbmcplugin.addDirectoryItem(handle=HANDLE, url=url, listitem=item, isFolder=isFolder)
 
-def setResolvedUrl(url="", solved=True, subs=[], headers=None, ins=None, insdata=None):
+def setResolvedUrl(url="", solved=True, subs=None, headers=None, ins=None, insdata=None):
     headerUrl=""
     if headers:
-            headerUrl = urlencode(headers)
+        headerUrl = urlencode(headers)
     item = xbmcgui.ListItem(path = url + "|" + headerUrl)
-    item.setSubtitles(subs)
+    if subs is not None:
+        item.setSubtitles(subs)
     if ins:
         item.setProperty('inputstreamaddon', ins)
         if insdata:
@@ -128,8 +132,8 @@ def append_subtitle(sUrl, subtitlename, sync=False, provider=None):
     return addListItem(label="Italian", label2=subtitlename, params=tUrl, thumb="it", 
                        properties={"sync": 'true' if sync else 'false', "hearing_imp": "false"}, isFolder=False)
 
-def setContent(type='videos'):
-    xbmcplugin.setContent(HANDLE, type)
+def setContent(ctype='videos'):
+    xbmcplugin.setContent(HANDLE, ctype)
 
 def endScript(message=None,loglevel=2, closedir=True):
     if message:
@@ -165,8 +169,8 @@ def isPlayingVideo():
 def getInfoLabel(lbl):
     return xbmc.getInfoLabel(lbl)
 
-def getRegion(id):
-    return xbmc.getRegion(id)
+def getRegion(r):
+    return xbmc.getRegion(r)
 
 def getEpisodeInfo():
     episode = {}
