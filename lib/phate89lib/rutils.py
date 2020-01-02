@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import json
 import os
 import shutil
 import zipfile
 import requests
 from bs4 import BeautifulSoup
-from kodi_six.utils import py2_encode
+from . import staticutils
 try:
     from json.decoder import JSONDecodeError
 except ImportError:
@@ -76,7 +77,7 @@ class RUtils(object):
     def getText(self, url, params=None, post=None, **kwargs):
         r = self.createRequest(url, params, post, **kwargs)
         if r:
-            return py2_encode(r.text)
+            return staticutils.py2_encode(r.text)
         return False
 
     def getFileExtracted(self, url, params=None, post=None, dataPath='', index=0):
