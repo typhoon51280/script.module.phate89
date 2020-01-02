@@ -1,4 +1,5 @@
 1.2.1
+- added function to get formatted date
 - code cleanup and improvements
 
 1.2.0

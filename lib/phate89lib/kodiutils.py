@@ -233,4 +233,11 @@ def getEpisodeInfo():
     return episode
 
 
+def getFormattedDate(dt):
+    fmt = getRegion('datelong')
+    fmt = fmt.replace("%A", KODILANGUAGE(dt.weekday() + 11))
+    fmt = fmt.replace("%B", KODILANGUAGE(dt.month + 20))
+    return dt.strftime(py2_encode(fmt))
+
+
 log("Starting module '%s' version '%s' with command '%s'" % (NAME, VERSION, sys.argv[2]), 1)
