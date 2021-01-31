@@ -26,8 +26,8 @@ IMAGE_PATH_T = os.path.join(PATH_T, 'resources', 'media', "")
 LANGUAGE = ADDON.getLocalizedString
 KODILANGUAGE = xbmc.getLocalizedString
 
-HANDLE = int(sys.argv[1])
-
+if sys.argv and len(sys.argv)>1:
+    HANDLE = int(sys.argv[1])
 
 def executebuiltin(func, block=False):
     xbmc.executebuiltin(func, block)
@@ -239,5 +239,5 @@ def getFormattedDate(dt):
     fmt = fmt.replace("%B", KODILANGUAGE(dt.month + 20))
     return dt.strftime(py2_encode(fmt))
 
-
-log("Starting module '%s' version '%s' with command '%s'" % (NAME, VERSION, sys.argv[2]), 1)
+if sys.argv and len(sys.argv)>2:
+    log("Starting module '%s' version '%s' with command '%s'" % (NAME, VERSION, sys.argv[2]), 1)
