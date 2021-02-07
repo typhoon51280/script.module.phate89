@@ -3,7 +3,8 @@
 import os
 import re
 import sys
-from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, utils  # pylint: disable=import-error
+import traceback
+from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, utils  # pyright: reportMissingImports=false
 try:
     from urllib.parse import urlencode
 except ImportError:
@@ -47,6 +48,17 @@ def log(msg, level=2):
         if level == 0:
             notify(msg)
 
+def createError(ex):
+    template = (
+        "EXCEPTION Thrown (PythonToCppException) : -->Python callback/script returned the following error<--\n"
+        " - NOTE: IGNORING THIS CAN LEAD TO MEMORY LEAKS!\n"
+        "Error Type: <type '{0}'>\n"
+        "Error Contents: {1!r}\n"
+        "{2}"
+        "-->End of Python script error report<--"
+    )
+    return template.format(type(ex).__name__, ex.args, traceback.format_exc())
+
 
 def py2_decode(s):
     return utils.py2_decode(s)
@@ -76,6 +88,8 @@ def getSettingAsNum(setting):
 def setSetting(setting, value):
     ADDON.setSetting(id=setting, value=str(value))
 
+def openSettings():
+    ADDON.openSettings()
 
 def getKeyboard():
     return xbmc.Keyboard()
@@ -115,8 +129,9 @@ def addListItem(label="", params=None, label2=None, thumb=None, fanart=None, pos
         url = staticutils.parameters(params)
     else:
         url = params
-    for key, value in list(properties.items()):
-        item.setProperty(key, value)
+    if isinstance(properties, dict):
+        for key, value in list(properties.items()):
+            item.setProperty(key, value)
     return xbmcplugin.addDirectoryItem(handle=HANDLE, url=url, listitem=item, isFolder=isFolder)
 
 
@@ -124,7 +139,8 @@ def setResolvedUrl(url="", solved=True, subs=None, headers=None, ins=None, insda
     headerUrl = ""
     if headers:
         headerUrl = urlencode(headers)
-    item = xbmcgui.ListItem(path=url + "|" + headerUrl)
+    path = url + "|" + headerUrl
+    item = xbmcgui.ListItem(path=path)
     if subs is not None:
         item.setSubtitles(subs)
     if ins:
@@ -132,10 +148,14 @@ def setResolvedUrl(url="", solved=True, subs=None, headers=None, ins=None, insda
         if insdata:
             for key, value in list(insdata.items()):
                 item.setProperty(ins + '.' + key, value)
-        if properties:
-            for key, value in list(properties.items()):
-                item.setProperty(key, value)
+    # if properties and isinstance(properties, dict):
+    #     for key, value in list(properties.items()):
+    #         item.setProperty(key, value)
     xbmcplugin.setResolvedUrl(HANDLE, solved, item)
+    if solved:
+        log('item: {}'.format(str(item)), 4)
+        properties['path'] = path
+        kodiJsonRequest({'jsonrpc': '2.0', 'method': 'JSONRPC.NotifyAll', 'params': {'sender': ID, 'message': 'onAVStarted' , 'data': properties}, 'id': 1})
     sys.exit()
 
 
@@ -241,6 +261,18 @@ def getFormattedDate(dt):
     fmt = fmt.replace("%A", KODILANGUAGE(dt.weekday() + 11))
     fmt = fmt.replace("%B", KODILANGUAGE(dt.month + 20))
     return dt.strftime(py2_encode(fmt))
+
+def kodiJsonRequest(params):
+    data = json.dumps(params)
+    request = xbmc.executeJSONRPC(data)
+    response = json.loads(request)
+    try:
+        if 'result' in response:
+            return response['result']
+        return None
+    except KeyError:
+        log("[%s] %s" % (params['method'], response['error']['message']))
+        return None
 
 if sys.argv and len(sys.argv)>2:
     log("Starting module '%s' version '%s' with command '%s'" % (NAME, VERSION, sys.argv[2]), 1)
