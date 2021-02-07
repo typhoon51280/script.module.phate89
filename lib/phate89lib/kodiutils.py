@@ -148,9 +148,9 @@ def setResolvedUrl(url="", solved=True, subs=None, headers=None, ins=None, insda
         if insdata:
             for key, value in list(insdata.items()):
                 item.setProperty(ins + '.' + key, value)
-    # if properties and isinstance(properties, dict):
-    #     for key, value in list(properties.items()):
-    #         item.setProperty(key, value)
+    if properties and isinstance(properties, dict):
+        for key, value in list(properties.items()):
+            item.setProperty(key, value)
     xbmcplugin.setResolvedUrl(HANDLE, solved, item)
     if solved:
         log('item: {}'.format(str(item)), 4)
