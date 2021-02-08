@@ -28,7 +28,10 @@ LANGUAGE = ADDON.getLocalizedString
 KODILANGUAGE = xbmc.getLocalizedString
 
 if sys.argv and len(sys.argv)>1:
-    HANDLE = int(sys.argv[1])
+    try:
+        HANDLE = int(sys.argv[1])
+    except ValueError:
+        pass
 
 def executebuiltin(func, block=False):
     xbmc.executebuiltin(func, block)
@@ -40,13 +43,18 @@ def notify(msg):
 
 
 def log(msg, level=2):
-    message = u'%s: %s' % (ID, msg)
-    if level > 1:
-        xbmc.log(msg=message, level=xbmc.LOGDEBUG)
-    else:
-        xbmc.log(msg=message, level=xbmc.LOGNOTICE)
-        if level == 0:
-            notify(msg)
+    try:
+        message = u'%s: %s' % (ID, msg)
+        if level > 1:
+            xbmc.log(msg=message, level=xbmc.LOGDEBUG)
+        else:
+            xbmc.log(msg=message, level=xbmc.LOGNOTICE)
+            if level == 0:
+                notify(msg)
+    except Exception as ex:
+        error = u'%s: %s' % (ID, createError(ex))
+        xbmc.log(msg=error, level=xbmc.LOGNOTICE)
+        pass
 
 def createError(ex):
     template = (
@@ -109,7 +117,7 @@ def showOkDialog(heading, line):
 
 
 def addListItem(label="", params=None, label2=None, thumb=None, fanart=None, poster=None, arts=None,
-                videoInfo=None, properties=None, isFolder=True):
+                videoInfo=None, properties=None, isFolder=True, isDeletable=False, delete_list='', delete_field=''):
     if arts is None:
         arts = {}
     if properties is None:
@@ -132,6 +140,18 @@ def addListItem(label="", params=None, label2=None, thumb=None, fanart=None, pos
     if isinstance(properties, dict):
         for key, value in list(properties.items()):
             item.setProperty(key, value)
+    menuItems = []
+    if isDeletable and delete_field and params and delete_field in params:
+        menuItems.append(('Rimuovi da Lista (MediasetPlay)', "RunScript({},{},\"?mode=delete&delete_list={}&delete_id={}\")".format(ID,HANDLE,delete_list,str(params[delete_field]))))
+    else:
+        if params and 'guid' in params:
+            menuItems.append(('Guarda Dopo (MediasetPlay)', "RunScript({},{},\"?mode=watchlistadd&guid={}\")".format(ID,HANDLE,str(params['guid']))))
+        if params and 'brand_id' in params:
+            menuItems.append(('Aggiungi a Preferiti (MediasetPlay)', "RunScript({},{},\"?mode=favoritesadd&brand_id={}\")".format(ID,HANDLE,str(params['brand_id']))))
+        elif params and 'series_id' in params:
+            menuItems.append(('Aggiungi a Preferiti (MediasetPlay)', "RunScript({},{},\"?mode=favoritesadd&series_id={}\")".format(ID,HANDLE,str(params['series_id']))))
+    if menuItems:
+        item.addContextMenuItems(menuItems)
     return xbmcplugin.addDirectoryItem(handle=HANDLE, url=url, listitem=item, isFolder=isFolder)
 
 
@@ -185,6 +205,9 @@ def endScript(message=None, loglevel=2, closedir=True):
     if message:
         log(message, loglevel)
     if closedir:
+        xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_UNSORTED)
+        xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL)
+        xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.endOfDirectory(handle=HANDLE, succeeded=True)
     sys.exit()
 
