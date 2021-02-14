@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import traceback
+from contextlib import contextmanager
 from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, utils  # pyright: reportMissingImports=false
 try:
     from urllib.parse import urlencode
@@ -26,6 +27,7 @@ DATA_PATH_T = xbmc.translatePath(DATA_PATH)
 IMAGE_PATH_T = os.path.join(PATH_T, 'resources', 'media', "")
 LANGUAGE = ADDON.getLocalizedString
 KODILANGUAGE = xbmc.getLocalizedString
+HANDLE = -1
 
 if sys.argv and len(sys.argv)>1:
     try:
@@ -36,11 +38,12 @@ if sys.argv and len(sys.argv)>1:
 def executebuiltin(func, block=False):
     xbmc.executebuiltin(func, block)
 
+def getMedia(asset=''):
+    return os.path.join(PATH_T, 'resources', 'media', asset)
 
-def notify(msg):
-    message = 'Notification(%s,%s)' % (ID, msg)
+def notify(message='', header=NAME, time=4000, icon=''):
+    message = 'Notification(%s,%s,%i,%s)' % (header, message, time, icon)
     xbmc.executebuiltin(message)
-
 
 def log(msg, level=2):
     try:
@@ -53,7 +56,7 @@ def log(msg, level=2):
                 notify(msg)
     except Exception as ex:
         error = u'%s: %s' % (ID, createError(ex))
-        xbmc.log(msg=error, level=xbmc.LOGNOTICE)
+        xbmc.log(msg=error, level=xbmc.LOGDEBUG)
         pass
 
 def createError(ex):
@@ -116,8 +119,7 @@ def showOkDialog(heading, line):
     xbmcgui.Dialog().ok(heading, line)
 
 
-def addListItem(label="", params=None, label2=None, thumb=None, fanart=None, poster=None, arts=None,
-                videoInfo=None, properties=None, isFolder=True, isDeletable=False, delete_list='', delete_field=''):
+def addListItem(label="", params=None, label2=None, thumb=None, fanart=None, poster=None, arts=None, videoInfo=None, properties=None, isFolder=True, menuItems=None):
     if arts is None:
         arts = {}
     if properties is None:
@@ -129,9 +131,15 @@ def addListItem(label="", params=None, label2=None, thumb=None, fanart=None, pos
         arts['fanart'] = fanart
     if poster:
         arts['poster'] = poster
-    item.setArt(arts)
-    item.setInfo('video', videoInfo)
-    if not isFolder:
+    if arts:
+        item.setArt(arts)
+    if videoInfo:
+        item.setInfo('video', videoInfo)
+    if isFolder:
+        item.setIsFolder(True)
+        properties['IsPlayable'] = 'false'
+    else:
+        item.setIsFolder(False)
         properties['IsPlayable'] = 'true'
     if isinstance(params, dict):
         url = staticutils.parameters(params)
@@ -140,16 +148,6 @@ def addListItem(label="", params=None, label2=None, thumb=None, fanart=None, pos
     if isinstance(properties, dict):
         for key, value in list(properties.items()):
             item.setProperty(key, value)
-    menuItems = []
-    if isDeletable and delete_field and params and delete_field in params:
-        menuItems.append(('Rimuovi da Lista (MediasetPlay)', "RunScript({},{},\"?mode=delete&delete_list={}&delete_id={}\")".format(ID,HANDLE,delete_list,str(params[delete_field]))))
-    else:
-        if params and 'guid' in params:
-            menuItems.append(('Guarda Dopo (MediasetPlay)', "RunScript({},{},\"?mode=watchlistadd&guid={}\")".format(ID,HANDLE,str(params['guid']))))
-        if params and 'brand_id' in params:
-            menuItems.append(('Aggiungi a Preferiti (MediasetPlay)', "RunScript({},{},\"?mode=favoritesadd&brand_id={}\")".format(ID,HANDLE,str(params['brand_id']))))
-        elif params and 'series_id' in params:
-            menuItems.append(('Aggiungi a Preferiti (MediasetPlay)', "RunScript({},{},\"?mode=favoritesadd&series_id={}\")".format(ID,HANDLE,str(params['series_id']))))
     if menuItems:
         item.addContextMenuItems(menuItems)
     return xbmcplugin.addDirectoryItem(handle=HANDLE, url=url, listitem=item, isFolder=isFolder)
@@ -197,18 +195,21 @@ def append_subtitle(sUrl, subtitlename, sync=False, provider=None):
                        isFolder=False)
 
 
-def setContent(ctype='videos'):
-    xbmcplugin.setContent(HANDLE, ctype)
+def setContent(ctype):
+    if ctype:
+        xbmcplugin.setContent(HANDLE, ctype)
 
 
-def endScript(message=None, loglevel=2, closedir=True):
+def endScript(message=None, loglevel=2, closedir=True, update_listing=False, update_dir=False):
     if message:
         log(message, loglevel)
     if closedir:
         xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_UNSORTED)
         xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL)
         xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_DATE)
-        xbmcplugin.endOfDirectory(handle=HANDLE, succeeded=True)
+        xbmcplugin.endOfDirectory(handle=HANDLE, succeeded=True, updateListing=update_listing)
+    if update_dir:
+        refresh()
     sys.exit()
 
 
@@ -285,17 +286,35 @@ def getFormattedDate(dt):
     fmt = fmt.replace("%B", KODILANGUAGE(dt.month + 20))
     return dt.strftime(py2_encode(fmt))
 
-def kodiJsonRequest(params):
-    data = json.dumps(params)
-    request = xbmc.executeJSONRPC(data)
-    response = json.loads(request)
+@contextmanager
+def busy_dialog():
+    showBusy()
     try:
+        yield
+    finally:
+        closeBusy()
+
+def showBusy():
+    xbmc.executebuiltin('ActivateWindow(busydialognocancel)')
+
+def closeBusy():
+    xbmc.executebuiltin('Dialog.Close(busydialognocancel)')
+
+def refresh():
+    xbmc.executebuiltin('Container.Refresh()')
+
+def kodiJsonRequest(params):
+    result = None
+    response = None
+    try:
+        data = json.dumps(params)
+        request = xbmc.executeJSONRPC(data)
+        response = json.loads(request)
         if 'result' in response:
-            return response['result']
-        return None
+            result = response['result']
     except KeyError:
         log("[%s] %s" % (params['method'], response['error']['message']))
-        return None
+    return result
 
 if sys.argv and len(sys.argv)>2:
     log("Starting module '%s' version '%s' with command '%s'" % (NAME, VERSION, sys.argv[2]), 1)
