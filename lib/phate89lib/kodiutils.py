@@ -41,7 +41,7 @@ def executebuiltin(func, block=False):
 def getMedia(asset=''):
     return os.path.join(PATH_T, 'resources', 'media', asset)
 
-def notify(message='', header=NAME, time=4000, icon=''):
+def notify(message='', header=NAME, time=3000, icon=''):
     message = 'Notification(%s,%s,%i,%s)' % (header, message, time, icon)
     xbmc.executebuiltin(message)
 
