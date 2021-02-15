@@ -3,6 +3,7 @@
 import os
 import re
 import sys
+import time
 import traceback
 from contextlib import contextmanager
 from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, utils  # pyright: reportMissingImports=false
@@ -142,6 +143,8 @@ def addListItem(label="", params=None, label2=None, thumb=None, fanart=None, pos
         item.setIsFolder(False)
         properties['IsPlayable'] = 'true'
     if isinstance(params, dict):
+        if 'ResumeTime' in properties and float(properties['ResumeTime'])==0.0 and '_' not in params:
+            params['_'] = int(time.time())
         url = staticutils.parameters(params)
     else:
         url = params
@@ -173,6 +176,7 @@ def setResolvedUrl(url="", solved=True, subs=None, headers=None, ins=None, insda
     if solved:
         log('item: {}'.format(str(item)), 4)
         properties['path'] = path
+        properties['url'] = url
         kodiJsonRequest({'jsonrpc': '2.0', 'method': 'JSONRPC.NotifyAll', 'params': {'sender': ID, 'message': 'onAVStarted' , 'data': properties}, 'id': 1})
     sys.exit()
 
