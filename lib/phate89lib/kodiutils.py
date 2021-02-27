@@ -5,6 +5,8 @@ import re
 import sys
 import time
 import traceback
+import datetime
+from functools import wraps
 from contextlib import contextmanager
 from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, utils  # pyright: reportMissingImports=false
 try:
@@ -322,3 +324,39 @@ def kodiJsonRequest(params):
 
 if sys.argv and len(sys.argv)>2:
     log("Starting module '%s' version '%s' with command '%s'" % (NAME, VERSION, sys.argv[2]), 1)
+
+def cacheable(hours=0, days=0):
+    '''
+        wrapper around our simple cache to use as decorator
+        Usage: define an instance of SimpleCache with name "cache" (self.cache) in your class
+        Any method that needs caching just add @use_cache as decorator
+        NOTE: use unnamed arguments for calling the method and named arguments for optional settings
+    '''
+    def decorator(func):
+        '''our decorator'''
+        @wraps(func)
+        def decorated(*args, **kwargs):
+            '''process the original method and apply caching of the results'''
+            method_class = args[0]
+            method_class_name = method_class.__class__.__name__
+            cache_str = "%s.%s.%s" % (ID, method_class_name, func.__name__)
+            # cache identifier is based on positional args only
+            # named args are considered optional and ignored
+            for item in args[1:]:
+                cache_str += u".%s" % item
+            cache_str = cache_str.lower()
+            cachedata = method_class.cache.get(cache_str) if hasattr(method_class, 'cache') else None
+            global_cache_ignore = False
+            try:
+                global_cache_ignore = method_class.ignore_cache
+            except Exception:
+                pass
+            if cachedata is not None and not kwargs.get("ignore_cache", False) and not global_cache_ignore:
+                return cachedata
+            else:
+                result = func(*args, **kwargs)
+                if hasattr(method_class, 'cache'):
+                    method_class.cache.set(cache_str, result, expiration=datetime.timedelta(hours=hours, days=days))
+                return result
+        return decorated
+    return decorator

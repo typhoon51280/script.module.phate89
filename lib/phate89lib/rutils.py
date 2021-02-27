@@ -5,6 +5,7 @@ import os
 import shutil
 import zipfile
 import requests
+import simplecache
 from bs4 import BeautifulSoup
 from . import staticutils
 try:
@@ -19,8 +20,12 @@ class RUtils(object):
     DEFPARAMS = {}
     LOGLEVEL = 5
 
-    def __init__(self):
+    def __init__(self, enable_cache=False, enable_mem_cache=False, global_ignore_cache=False):
         self.setUserAgent(self.USERAGENT)
+        if enable_cache:
+            self.cache = simplecache.SimpleCache()
+            self.cache.enable_mem_cache = enable_mem_cache
+            self.ignore_cache = global_ignore_cache
 
     def setUserAgent(self, useragent):
         self.setHeader('user-agent', useragent)
