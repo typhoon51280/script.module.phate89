@@ -10,6 +10,7 @@ import re
 import unicodedata
 from datetime import datetime
 import time
+from kodi_six import utils  # pyright: reportMissingImports=false
 
 PY2 = sys.version_info[0] == 2
 
@@ -21,7 +22,7 @@ def getParams():
 
 
 def parameters(p):
-    for k, v in list(p.iteritems()):
+    for k, v in list(p.items()):
         p[k] = py2_encode(v)
     return sys.argv[0] + '?' + urlencode(p)
 
@@ -102,8 +103,8 @@ def get_timestamp_midnight(dt=None):
 def get_date_from_timestamp(dt):
     return datetime.fromtimestamp(dt / 1e3)
 
+def py2_encode(*args, **kwargs):
+    return utils.py2_encode(*args, **kwargs)
 
-def py2_encode(s):
-    if isinstance(s, unicode):  # pylint: disable=undefined-variable
-        return s.encode('utf-8')
-    return s
+def py2_decode(*args, **kwargs):
+    return utils.py2_decode(*args, **kwargs)
