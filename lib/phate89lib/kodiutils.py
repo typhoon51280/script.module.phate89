@@ -167,7 +167,7 @@ def setResolvedUrl(url="", solved=True, subs=None, headers=None, ins=None, insda
     if subs is not None:
         item.setSubtitles(subs)
     if ins:
-        # item.setProperty('inputstreamaddon', ins)
+        item.setProperty('inputstreamaddon', ins)
         item.setProperty('inputstream', ins)
         if insdata:
             for key, value in list(insdata.items()):
