@@ -8,7 +8,7 @@ import traceback
 import datetime
 from functools import wraps
 from contextlib import contextmanager
-from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, utils  # pyright: reportMissingImports=false
+from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui  # pyright: reportMissingImports=false
 try:
     from urllib.parse import urlencode
 except ImportError:
@@ -54,7 +54,7 @@ def log(msg, level=2):
         if level > 1:
             xbmc.log(msg=message, level=xbmc.LOGDEBUG)
         else:
-            xbmc.log(msg=message, level=xbmc.LOGNOTICE)
+            xbmc.log(msg=message, level=xbmc.LOGINFO)
             if level == 0:
                 notify(msg)
     except Exception as ex:
@@ -74,12 +74,12 @@ def createError(ex):
     return template.format(type(ex).__name__, ex.args, traceback.format_exc())
 
 
-def py2_decode(s):
-    return utils.py2_decode(s)
+def py2_decode(*args, **kwargs):
+    return staticutils.py2_decode(*args, **kwargs)
 
 
-def py2_encode(s):
-    return utils.py2_encode(s)
+def py2_encode(*args, **kwargs):
+    return staticutils.py2_encode(*args, **kwargs)
 
 
 def getSetting(setting):
@@ -167,7 +167,8 @@ def setResolvedUrl(url="", solved=True, subs=None, headers=None, ins=None, insda
     if subs is not None:
         item.setSubtitles(subs)
     if ins:
-        item.setProperty('inputstreamaddon', ins)
+        # item.setProperty('inputstreamaddon', ins)
+        item.setProperty('inputstream', ins)
         if insdata:
             for key, value in list(insdata.items()):
                 item.setProperty(ins + '.' + key, value)
@@ -175,6 +176,7 @@ def setResolvedUrl(url="", solved=True, subs=None, headers=None, ins=None, insda
         for key, value in list(properties.items()):
             item.setProperty(key, value)
     xbmcplugin.setResolvedUrl(HANDLE, solved, item)
+    # result = kodiutils.kodiJsonRequest({'jsonrpc': '2.0', 'method': 'Player.Open', 'params': {'item': playerId, "properties": ["time","totaltime"]}, 'id': 1})
     if solved:
         log('item: {}'.format(str(item)), 4)
         properties['path'] = path
@@ -229,13 +231,13 @@ def getShowID():
     json_query = xbmc.executeJSONRPC((
         '{"jsonrpc":"2.0","method":"Player.GetItem","params":'
         '{"playerid":1,"properties":["tvshowid"]},"id":1}'))
-    jsn_player_item = json.loads(utils.py2_decode(json_query, 'utf-8', errors='ignore'))
+    jsn_player_item = json.loads(py2_decode(json_query, 'utf-8', errors='ignore'))
     if 'result' in jsn_player_item and jsn_player_item['result']['item']['type'] == 'episode':
         json_query = xbmc.executeJSONRPC((
             '{"jsonrpc":"2.0","id":1,"method":"VideoLibrary.GetTVShowDetails","params":'
             '{"tvshowid":%s, "properties": ["imdbnumber"]}}') % (
                 jsn_player_item['result']['item']['tvshowid']))
-        jsn_ep_det = json.loads(utils.py2_decode(json_query, 'utf-8', errors='ignore'))
+        jsn_ep_det = json.loads(py2_decode(json_query, 'utf-8', errors='ignore'))
         if 'result' in jsn_ep_det and jsn_ep_det['result']['tvshowdetails']['imdbnumber'] != '':
             return str(jsn_ep_det['result']['tvshowdetails']['imdbnumber'])
     return False

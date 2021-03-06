@@ -132,9 +132,9 @@ class RUtils(object):
 
             if binData:
                 try:
-                    fp = open(outName, 'wb')
-                    fp.write(binData)
-                    fp.close()
+                    with open(outName, 'wb') as fp:
+                        fp.write(binData)
+                        fp.close()
                 except EnvironmentError:
                     self.log("Error writing text subtitle file")
                     return False
@@ -152,7 +152,7 @@ class RUtils(object):
             if os.path.isdir(TEMPFOLDER):
                 shutil.rmtree(TEMPFOLDER)
             os.makedirs(TEMPFOLDER)
-            xbmc.executebuiltin('XBMC.Extract(%s,%s)' % (TEMPFILE, TEMPFOLDER), True)
+            xbmc.executebuiltin('Extract(%s,%s)' % (TEMPFILE, TEMPFOLDER), True)
             exts = ['.srt', '.sub', '.txt', '.smi', '.ssa', '.ass']
             subs = [os.path.join(root, name)
                     for root, dirs, files in os.walk(TEMPFOLDER)
